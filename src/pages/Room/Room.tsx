@@ -19,6 +19,7 @@ interface Payload {
 }
 
 interface Video {
+  _id?: string;
   name?: string;
   url?: string;
   views?: number;
@@ -35,35 +36,33 @@ export default function Room() {
   const [text, setText] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [video, setVideo] = useState<Video>({});
+  const [view, setViews] = useState<number>(0);
 
   let [searchParams] = useSearchParams();
 
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(true);
   const [time, setTime] = useState(0);
-  const [urlDefault, setUrlDefault] = useState(``);
-  const [url, setUrl] = useState(``);
+  const [url, setUrl] = useState(urlYouTube);
 
   const getVideo = useCallback(async (k: string) => {
     const { data } = await api.get(`/room/${k}`)
     const [, idVideo] = data.url.split('=')
     setTime(data.currentTimeVideo)
     setVideo(data);
-    setUrl(`${urlYouTube}${idVideo}?autoplay=0&start=${data.currentTimeVideo}${params}`)
-    setUrlDefault(`${urlYouTube}${idVideo}`)
+    setUrl(`${urlYouTube}${idVideo}?autoplay=${data.currentStatusVideo ? 1 : 0}&start=${data.currentTimeVideo}`)
+    handledPauser()
   }, [])
 
   const handledPlay = useCallback(() => {
-    console.log('time',time  )
     socket.emit('videoControl', {
       ...video,
-      currentTimeVideo: time,
+      currentTimeVideo: time + 2,
       currentStatusVideo: true,
     });
   }, [time, video])
 
   const handledPauser = useCallback(() => {
-    console.log('time',time  )
 
     socket.emit('videoControl', {
       ...video,
@@ -75,7 +74,7 @@ export default function Room() {
   const handledBack = useCallback(() => {
     let newTime = 0
     if (time < 10) newTime = 0;
-    else newTime = time - 10000
+    else newTime = time - 10
 
     socket.emit('videoControl', {
       ...video,
@@ -88,7 +87,7 @@ export default function Room() {
   const handledNext = useCallback(() => {
     socket.emit('videoControl', {
       ...video,
-      currentTimeVideo: time + 15000,
+      currentTimeVideo: time + 15,
       currentStatusVideo: true,
     });
   }, [time, video])
@@ -98,8 +97,8 @@ export default function Room() {
 
     if (isActive && isPaused === false) {
       interval = setInterval(() => {
-        setTime((time) => time + 10);
-      }, 10);
+        setTime((time) => time + 1);
+      }, 1000);
     } else {
       clearInterval(interval);
     }
@@ -122,12 +121,14 @@ export default function Room() {
 
       setMessages(e => [...messages, newMessage]);
     });
+  }, [messages]);
 
+  useEffect(() => {
     socket.on('videoControl', (control: Video) => {
       if (control.url) {
         const [, idVideo] = control.url.split('=')
-
-        const u = `${urlYouTube}${idVideo}?autoplay=${control.currentStatusVideo ? 1 : 0}&start=${("0" + Math.floor((control.currentTimeVideo??0 / 1000) % 60)).slice(-2) }`
+        // const u = `${urlYouTube}${idVideo}?autoplay=0&start=${control.currentTimeVideo}${params}`
+        const u = `${urlYouTube}${idVideo}?autoplay=${control.currentStatusVideo ? 1 : 0}&start=${control.currentTimeVideo}${params}`
         setUrl(u)
         setTime(control.currentTimeVideo ?? 0)
         setIsActive(!!control.currentStatusVideo);
@@ -139,26 +140,12 @@ export default function Room() {
             currentStatusVideo: control.currentStatusVideo,
           }
         })
-
-        console.log(control.currentTimeVideo)
-        console.log(u)
+        // if (control.currentStatusVideo) {
+        //   document.getElementById("ytplayer")?.click();
+        // }
       }
     });
-
-  }, [messages]);
-
-  // useEffect(() => {
-  //   socket.on('msgToClient', (message: Payload) => {
-  //     const newMessage: Message = {
-  //       id: uuid.v4(),
-  //       name: message.name,
-  //       text: message.text,
-  //     };
-
-  //     setMessages([...messages, newMessage]);
-  //   });
-  // }, [messages, name, text]);
-
+  }, []);
 
   const sendMessage = useCallback(() => {
     if (name.length > 0 && text.length > 0) {
@@ -204,7 +191,6 @@ export default function Room() {
               <span className="font-medium text-emerald-900 text-xl">{video?.name}</span><br />
               <span className=" text-emerald-900 text-xs">{location.href}</span>
             </div>
-            <span className="items-center flex hover:cursor-pointer hover:bg-emerald-600 bg-emerald-400 rounded-md font-medium text-white text-sm px-5 h-8">Compartilhar</span>
           </div>
           <div className="relative">
             <iframe
@@ -215,21 +201,22 @@ export default function Room() {
               allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
             // allowFullScreen
             ></iframe>
-            <div className="absolute top-0 w-full" style={{ height: 520 }}></div>
+            {/* <div className="absolute top-0 w-full" style={{ height: 520 }}></div> */}
           </div>
           <div className="space-x-2 py-3 items-center flex text-white">
-            <button className="hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledPlay}><Play size={22} /></button>
+            <button id='play' className="hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledPlay}><Play size={22} /></button>
             <button className="hover:bg-red-600 px-5 py-2 bg-red-500 rounded-md" onClick={handledPauser}><Pause size={22} /></button>
             <button className="disabled:bg-gray-400 hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledBack}><SkipBack size={22} /></button>
-            <button className="cursor-default outline-none px-5 py-2 bg-emerald-400 rounded-md h-9">{("0" + Math.floor((time / 3600000) % 60)).slice(-2)}:{("0" + Math.floor((time / 60000) % 60)).slice(-2)}:{("0" + Math.floor((time / 1000) % 60)).slice(-2)}</button>
+            <button className="cursor-default outline-none px-5 py-2 bg-emerald-400 rounded-md h-9">
+              {time}
+              {/* {("0" + Math.floor((time / 3600000) % 60)).slice(-2)}:{("0" + Math.floor((time / 60000) % 60)).slice(-2)}:{("0" + Math.floor((time / 1000) % 60)).slice(-2)} */}
+            </button>
             <button className="hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledNext}><SkipForward size={22} /></button>
           </div>
         </div>
         <div className="basis-4/12 flex flex-col pr-4">
-          <div className="justify-end flex">
-            <div className="flex pt-7 font-medium text-emerald-900 text-sm"><Eye className="mr-1" size={18} /> {'36'} Visualizações</div>
-          </div>
-          <div className="flex align-middle text-2xl py-3">
+          
+          <div className="flex align-middle text-2xl pt-10 pb-5">
             <ChatsTeardrop className="mr-2" size={32} /> Chat
           </div>
           <div style={{ height: 460 }} className="w-full pr-4 bg-gray-100 rounded-md overflow-y-scroll">
