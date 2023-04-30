@@ -207,10 +207,10 @@ export default function Room() {
             <button id='play' className="hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledPlay}><Play size={22} /></button>
             <button className="hover:bg-red-600 px-5 py-2 bg-red-500 rounded-md" onClick={handledPauser}><Pause size={22} /></button>
             <button className="disabled:bg-gray-400 hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledBack}><SkipBack size={22} /></button>
-            <button className="cursor-default outline-none px-5 py-2 bg-emerald-400 rounded-md h-9">
+            {/* <button className="cursor-default outline-none px-5 py-2 bg-emerald-400 rounded-md h-9">
               {time}
-              {/* {("0" + Math.floor((time / 3600000) % 60)).slice(-2)}:{("0" + Math.floor((time / 60000) % 60)).slice(-2)}:{("0" + Math.floor((time / 1000) % 60)).slice(-2)} */}
-            </button>
+               {("0" + Math.floor((time / 3600000) % 60)).slice(-2)}:{("0" + Math.floor((time / 60000) % 60)).slice(-2)}:{("0" + Math.floor((time / 1000) % 60)).slice(-2)} 
+            </button> */}
             <button className="hover:bg-emerald-600 px-5 py-2 bg-emerald-400 rounded-md" onClick={handledNext}><SkipForward size={22} /></button>
           </div>
         </div>
